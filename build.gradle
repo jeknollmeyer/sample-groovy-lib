@@ -1,0 +1,126 @@
+buildscript {
+    repositories {
+        maven { url "https://artifacts.company.int/artifactory/maven-all" }
+    }
+
+    ext {
+    gitPropVersion = '2.4.0-rc1'
+    }
+
+    dependencies {
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
+        classpath("com.gorylenko.gradle-git-properties:gradle-git-properties:${gitPropVersion}")
+        classpath("com.company.publish:company-publish-gradle-plugin:2.0.1.RELEASE")
+    }
+}
+
+repositories {
+    maven { url "https://artifacts.company.int/artifactory/maven-all" }
+}
+
+group 'com.company.commercial.commercial-devops'
+version = '1.0.0-SNAPSHOT'
+
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'jacoco'
+apply plugin: 'company-publish'
+apply plugin: 'org.sonarqube'
+apply plugin: "com.gorylenko.gradle-git-properties"
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', "build/reports/jacoco/test/jacocoTestReport.xml"
+    }
+}
+
+
+gitProperties {
+    dateFormat = "yyyy-MM-dd'T'HH:mmZ"
+    keys = ['git.branch',
+            'git.build.time',
+            'git.build.version',
+            'git.commit.id',
+            'git.commit.time']
+}
+
+
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:3.0.9'
+    implementation 'org.jsoup:jsoup:1.9.2'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.codehaus.groovy:groovy-test:3.0.9'
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+}
+
+
+sourceSets {
+  main {
+    groovy {
+      srcDirs = ['src/main/groovy']
+    }
+  }
+  test {
+    groovy {
+      srcDirs = ['src/test/groovy']
+    }
+  }
+}
+
+
+test {
+    useJUnitPlatform()
+
+    reports {
+        junitXml.required.set(true)
+        html.required.set(true)
+        junitXml.outputLocation.set(file("${buildDir}/test-results/test"))
+        html.outputLocation.set(file("${buildDir}/reports/tests/test"))
+    }
+
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        xml.outputLocation.set(file("${buildDir}/reports/jacoco/test/jacocoTestReport.xml"))
+        html.outputLocation.set(file("${buildDir}/reports/jacoco/test/html"))
+    }
+}
+
+
+
+task printTestResults {
+  dependsOn test, jacocoTestReport
+  doLast {
+    def testResultsDir = file("${buildDir}/test-results/test")
+    testResultsDir.eachFileMatch(~/.+\.xml/) { file ->
+      def testResult = new XmlSlurper().parse(file)
+      def suite = testResult
+      if (suite) {
+        println "Test Suite: ${suite.@name}"
+        println "  - Total tests: ${suite.@tests}"
+        println "  - Skipped: ${suite.@skipped}"
+        println "  - Failures: ${suite.@failures}"
+        println "  - Errors: ${suite.@errors}"
+      } else {
+        println "No testsuite element found in ${file.name}"
+      }
+    }
+  }
+}
+
+
+task printGroovyVersion {
+  doLast {
+    println "Groovy version: ${GroovySystem.version}"
+  }
+}
+
+
+test.finalizedBy printTestResults
