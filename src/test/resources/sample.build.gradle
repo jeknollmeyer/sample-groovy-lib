@@ -1,0 +1,66 @@
+////////         BUILDSCRIPT BLOCK IS A LITTLE REDUNDANT BUT ENSURES YOU WILL SOURCE ALL THE DEPENDENCIES
+buildscript {
+
+  repositories {
+    maven { url "https://artifacts.company.int/artifactory/maven-all" }
+    flatDir {
+      dirs '/home/dc-user/automation-utils/build/libs'
+    }
+  }
+
+  dependencies {
+    classpath 'org.codehaus.groovy:groovy-all:3.0.9'
+    classpath 'com.company.commercial.commercial-devops:bizops-automation-utils:1.0.0'
+  }
+}
+
+
+plugins {
+  id 'java'
+  id 'groovy'
+}
+
+////////    DEFINE WHERE AND WHAT LIBS/PLUGINS YOU WANT TO USE    ////////
+repositories {
+  maven { url "https://artifacts.company.int/artifactory/maven-all" }
+  //run Utils from local jar
+}
+
+dependencies {
+  implementation 'org.codehaus.groovy:groovy-all:3.0.9'
+  implementation name: 'com.company.commercial.commercial-devops:bizops-automation-utils:1.0.0'
+}
+
+
+////////   DEFINE VARS FOR YOUR GRADLE TASKS  ////////
+ext {
+  projectName = "${project.name}"
+  gitUsername = System.getenv('GIT_USERNAME') ?: 'defaultUsername'
+  gitPassword = System.getenv('GIT_PASSWORD') ?: 'defaultPassword'
+  mainProject = "COMMERCIAL-DEVOPS"
+  mainRepo = "cera-release-trains"
+  mainBranch = "master"
+  releaseName = project.hasProperty('releaseName') ? project.getProperty('releaseName') : "release-train.json"
+}
+
+
+////////    IMPORT THE UTILS.CLASSPATHS YOU WANT    ////////
+import utils.CommonUtils
+import utils.BitbucketUtils
+
+
+////////    DEFINE TASKS USING THE PLUGINS        ////////
+task runUtilsMethods {
+  doLast {
+    def statusCode = 0
+    def message = "All systems go!"
+    CommonUtils.checkStatus(statusCode, message)
+  }
+}
+
+
+task cloneMainRepo {
+  doLast {
+    BitbucketUtils.cloneRepo(mainProject, mainRepo, mainBranch)
+  }
+}
