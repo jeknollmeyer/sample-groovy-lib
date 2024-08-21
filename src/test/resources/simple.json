@@ -1,0 +1,16 @@
+{
+  "release": {
+    "name": "testReleaseName",
+    "version": "1.0",
+    "features": [
+      {
+        "id": 1,
+        "name": "feature1"
+      },
+      {
+        "id": 2,
+        "name": "feature2"
+      }
+    ]
+  }
+}
